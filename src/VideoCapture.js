@@ -2,20 +2,47 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import axios from 'axios';
+import { useSwipeable } from 'react-swipeable';
+import { useNavigate } from 'react-router-dom';
+import { Download, RotateCw, Mic, MicOff } from 'lucide-react';
 import './VideoCapture.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL;
+const AI_BASE =
+  process.env.REACT_APP_AI_BASE_URL ||
+  'http://localhost:5000';
+const UPLOAD_BASE =
+  process.env.REACT_APP_API_BASE_URL ||
+  'http://localhost:3003';
 
 export default function VideoCapture() {
+  const navigate = useNavigate();
+
+  // 토글 상태
+  const [isMuted, setIsMuted] = useState(false);
+  const [isRotated, setIsRotated] = useState(false);
+  const toggleMute   = () => setIsMuted(m => !m);
+  const toggleRotate = () => setIsRotated(r => !r);
+
+  // 녹화 refs & state
   const webcamRef   = useRef(null);
   const recorderRef = useRef(null);
-  const [recording, setRecording] = useState(false);
+  const [recording,  setRecording ] = useState(false);
   const [chunks,     setChunks    ] = useState([]);
   const [timer,      setTimer     ] = useState(0);
-  const [intervalId, setIntervalId] = useState(null);
   const [status,     setStatus    ] = useState('');
+  const [uploadedUrl,setUploadedUrl] = useState('');
 
-  // 스트림 준비되면 호출 → MediaRecorder 초기화
+  // 스와이프 핸들러 (좌우 스와이프 → 설정/히스토리)
+  const goToSettings = () => navigate('/settings');
+  const goToHistory  = () => navigate('/history');
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft:  goToSettings,
+    onSwipedRight: goToHistory,
+    preventDefaultTouchmoveEvent: true,
+    trackMouse: true,
+  });
+
+  // MediaRecorder 초기화
   const handleUserMedia = useCallback(stream => {
     const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
     recorder.ondataavailable = e => {
@@ -24,29 +51,27 @@ export default function VideoCapture() {
     recorderRef.current = recorder;
   }, []);
 
-  // 녹화 타이머
+  // 녹화 타이머: recording만 의존
   useEffect(() => {
-    if (recording) {
-      const id = setInterval(() => setTimer(t => t + 1), 1000);
-      setIntervalId(id);
-    } else {
-      clearInterval(intervalId);
+    if (!recording) {
       setTimer(0);
+      return;
     }
-    return () => clearInterval(intervalId);
+    const id = setInterval(() => setTimer(t => t + 1), 1000);
+    return () => {
+      clearInterval(id);
+      setTimer(0);
+    };
   }, [recording]);
 
-  // 녹화 시작
   const startRecording = () => {
     setChunks([]);
-    if (recorderRef.current) {
-      recorderRef.current.start();
-      setRecording(true);
-      setStatus('');
-    }
+    recorderRef.current?.start();
+    setRecording(true);
+    setStatus('');
+    setUploadedUrl('');
   };
 
-  // 녹화 중지 및 업로드
   const stopRecording = useCallback(() => {
     if (!recorderRef.current) return;
     recorderRef.current.stop();
@@ -55,87 +80,114 @@ export default function VideoCapture() {
     setTimeout(async () => {
       const blob = new Blob(chunks, { type: 'video/webm' });
       try {
-        setStatus('☁️ GCS 업로드 중...');
-        const videoUrl = await uploadToGCS(blob);
-        setStatus('✅ GCS 업로드 완료!');
-        await axios.post(`${API_BASE}/videos`, { videoUrl });
-        setStatus('✅ 백엔드 저장 완료');
-      } catch {
-        setStatus('❌ 업로드 실패');
+        setStatus('☁️ 스토리지 업로드 중...');
+        const form = new FormData();
+        const filename = `video_${Date.now()}.webm`;
+        form.append('file', blob, filename);
+  
+        // ✅ 절대경로로 호출
+const uploadRes = await fetch(
+'http://127.0.0.1:3003/upload',  // ← IPv4 루프백 주소로 변경
+{ method: 'POST', body: form }
+);
+  
+        if (!uploadRes.ok) {
+          const text = await uploadRes.text();
+          throw new Error(`업로드 실패 ${uploadRes.status}: ${text}`);
+        }
+  
+        const { publicUrl } = await uploadRes.json();
+        setUploadedUrl(publicUrl);
+        setStatus('✅ URL 생성됨');
+  
+        setStatus('🧠 AI 분석 중...');
+        const { data: result } = await axios.post(
+          `${AI_BASE}/analyze`,
+          { videoUrl: publicUrl }
+        );
+  
+        navigate('/analysis', { state: { videoUrl: publicUrl, result } });
+      } catch (err) {
+        console.error('[VideoCapture] 업로드/분석 에러:', err);
+        setStatus(`❌ ${err.message}`);
       }
     }, 500);
-  }, [chunks]);
+  }, [chunks, navigate]);
+  
 
-  // 서명 URL 받아 PUT → publicUrl 리턴
-  async function uploadToGCS(blob) {
-    const filename    = `video_${Date.now()}.webm`;
-    const contentType = blob.type;
-    const { uploadUrl, publicUrl } = (await axios.post(
-      `${API_BASE}/storage/upload-url`,
-      { filename, contentType }
-    )).data;
-
-    await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': contentType },
-      body: blob,
-    });
-
-    return publicUrl;
-  }
-
-  // 녹화 파일 다운로드 (임시 확인용)
   const downloadRecording = () => {
-    if (chunks.length === 0) return;
+    if (!chunks.length) return;
     const blob = new Blob(chunks, { type: 'video/webm' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.style.display = 'none';
-    a.href        = url;
-    a.download    = `recording_${Date.now()}.webm`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `recording_${Date.now()}.webm`;
     document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(a.href);
     document.body.removeChild(a);
   };
 
-  // 타이머 mm:ss
+  // 타이머 포맷
   const mm = String(Math.floor(timer / 60)).padStart(2, '0');
   const ss = String(timer % 60).padStart(2, '0');
 
   return (
-    <div className="vc-container">
+    <div {...swipeHandlers} className="vc-container">
       <Webcam
-        audio
+        audio={!isMuted}
         ref={webcamRef}
         onUserMedia={handleUserMedia}
-        screenshotFormat="image/webm"
-        className="vc-webcam"
+        screenshotFormat="video/webm"
+        className={`vc-webcam ${isRotated ? 'rotated' : ''}`}
       />
 
+      {/* 정보 오버레이 */}
+      <div className="vc-info-overlay">
+        <div className="vc-info-text">
+          제품명: xxx<br/>
+          유통기한: YYYY.MM.DD<br/>
+          사용기한: ZZZZ.MM.DD
+        </div>
+        <div className="vc-info-controls">
+          <button onClick={toggleRotate}><RotateCw size={24} /></button>
+          <button onClick={toggleMute}>
+            {isMuted ? <MicOff size={24}/> : <Mic size={24}/>}
+          </button>
+        </div>
+      </div>
+
+      {/* 헤더 */}
       <div className="vc-header">
-        <button className="vc-btn vc-flash">⚡</button>
         <h1 className="vc-title">Echo of Sip</h1>
         {recording && <div className="vc-timer">● REC {mm}:{ss}</div>}
       </div>
 
+      {/* 하단 컨트롤 */}
       <div className="vc-controls">
-        <button className="vc-btn vc-settings">⚙</button>
-        <button className="vc-btn vc-nav">◀</button>
-        {recording ? (
-          <button className="vc-record vc-stop" onClick={stopRecording} />
-        ) : (
-          <button className="vc-record vc-start" onClick={startRecording} />
-        )}
-        <button className="vc-btn vc-nav">▶</button>
-        <button className="vc-btn vc-menu">☰</button>
+        <button className="vc-btn vc-settings" onClick={goToSettings}>⚙️</button>
+        <button
+          className="vc-record"
+          onClick={recording ? stopRecording : startRecording}
+        />
+        <button className="vc-btn vc-menu" onClick={goToHistory}>☰</button>
         {!recording && chunks.length > 0 && (
           <button className="vc-btn vc-download" onClick={downloadRecording}>
-            ⬇️ 다운로드
+            <Download size={24}/>
           </button>
         )}
       </div>
 
+      {/* 업로드된 URL 표시 */}
+      {uploadedUrl && (
+        <div className="vc-status">
+          ✅ 업로드 URL:&nbsp;
+          <a href={uploadedUrl} target="_blank" rel="noopener noreferrer">
+            {uploadedUrl}
+          </a>
+        </div>
+      )}
+
+      {/* 상태 메시지 */}
       {status && <div className="vc-status">{status}</div>}
     </div>
   );
