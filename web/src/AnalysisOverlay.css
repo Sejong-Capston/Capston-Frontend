@@ -1,0 +1,64 @@
+/* src/AnalysisOverlay.css */
+.ao-backdrop {
+  position: absolute;
+  top: 10%; 
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.ao-box {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.ao-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.ao-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.ao-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.ao-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #444;
+  cursor: pointer;
+}
+
+/* 추가된 성분 정보 영역 스타일 */
+.ao-ingredients {
+  margin-top: 10px;
+  text-align: left; /* 왼쪽 정렬 */
+}
+
+.ao-ingredients ul {
+  padding-left: 20px;
+  margin-top: 5px;
+}
+
+.ao-ingredients li {
+  font-size: 0.95rem;
+  color: #333; /* 텍스트 색상 */
+  list-style-type: disc; /* 동그라미로 표시 */
+}

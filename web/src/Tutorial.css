@@ -1,0 +1,97 @@
+/* 전체 공통 */
+.tutorial-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  text-align: center;
+  height: 100vh;
+  padding: 24px;
+  background-color: white;
+}
+
+/* 상단 앱 제목 */
+.tutorial-header {
+  width: 100%;
+  text-align: center;
+  padding: 16px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #5c4033;
+  border-bottom: 1px solid #ddd;
+  background-color: #f9f5f0;
+}
+
+/* 인트로 전용 배경 */
+.tutorial-intro {
+  background-color: #f4ece6;
+}
+
+.tutorial-intro-content {
+  margin-top: 60px;
+}
+
+.tutorial-app-title {
+  font-size: 32px;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #5c4033;
+}
+
+.tutorial-subtitle {
+  font-size: 18px;
+  color: #8B4513;
+  margin-bottom: 20px;
+  font-family: 'Noto Serif KR', serif;
+}
+
+.tutorial-intro-description {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #444;
+  font-family: 'Noto Sans KR', sans-serif;
+  margin-bottom: 40px;
+}
+
+/* 튜토리얼 단계 */
+.tutorial-icon {
+  font-size: 80px;
+  margin: 40px 0 20px;
+}
+
+.tutorial-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.tutorial-description {
+  font-size: 18px;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+/* 버튼 공통 */
+.tutorial-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.skip-btn, .next-btn {
+  padding: 12px 28px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.skip-btn {
+  background-color: #ddd;
+}
+
+.next-btn {
+  background-color: #34c759;
+  color: white;
+}

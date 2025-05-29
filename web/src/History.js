@@ -1,3 +1,4 @@
+//History.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
@@ -18,7 +19,7 @@ export default function History() {
       <header className="history-header">
         <button className="back-btn" onClick={() => navigate(-1)}>◀</button>
         <div className="history-header-text">
-          <div className="app-title">Echo of Sip</div>
+          <div className="app-title">Label–Talk</div>
           <div className="page-title">History</div>
         </div>
       </header>

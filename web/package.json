@@ -5,6 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "set \"HOST=0.0.0.0\" && set \"DANGEROUSLY_DISABLE_HOST_CHECK=true\" && react-scripts start",
     "start": "set \"HOST=0.0.0.0\" && react-scripts start",
     "server": "cd server && npm run dev",
     "build": "react-scripts build",
@@ -23,15 +24,24 @@
   },
   "homepage": ".",
   "dependencies": {
+    "@capacitor/android": "^7.2.0",
+    "@capacitor/camera": "^7.0.1",
+    "@capacitor/cli": "^7.2.0",
+    "@capacitor/core": "^7.2.0",
+    "@stomp/stompjs": "^7.1.1",
     "axios": "^1.9.0",
+    "expo": "53.0.9",
     "lucide-react": "^0.511.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.72.6",
     "react-router-dom": "^7.6.0",
     "react-scripts": "5.0.1",
     "react-swipeable": "^7.0.2",
-    "react-webcam": "^7.0.1"
+    "react-webcam": "^7.0.1",
+    "sockjs-client": "^1.6.1"
   },
+ "proxy": "https://bf43-115-91-214-6.ngrok-free.app",
   "browserslist": {
     "production": [
       ">0.2%",
